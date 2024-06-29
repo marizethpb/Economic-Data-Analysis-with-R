@@ -1,5 +1,5 @@
 # ANALYZING COMMODITY GROUP INFLATION EXPECTATIONS AND LENDING RATES WITH THE NEO-FISHER EFFECT
-This is thesis work (Briña, Galapate, Manlapig, & Rosero, 2024).
+This is our thesis work (Briña, Galapate, Manlapig, & Rosero, 2024).
 
 ## What is Neo-Fisher Effect
 Neo-Fisher is an economic theory that states that interest rate causes the inflation expectation. 
