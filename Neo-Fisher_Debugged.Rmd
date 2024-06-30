@@ -1,0 +1,610 @@
+---
+title: "Appendix"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document:
+    theme: journal
+  word_document:
+    keep_md: true
+date: "Data Analysis using R programming language"
+geometry: "left=1cm,right=1cm,top=1cm,bottom=1cm"
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{sectsty} \allsectionsfont{\centering}
+  - \DefineVerbatimEnvironment{myVerb}{Verbatim}{numbers=left,numbersep=1mm,frame=lines,framerule=0.4mm,rulecolor=\color{blue}}
+  - \usepackage{fontspec}
+  - \setmainfont{Arial}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+
+
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 80), tidy = TRUE)
+opts_chunk$set(comment=NA)
+def_hook <- knit_hooks$get("output")
+knit_hooks$set(output = function(x, options) {
+  out <- def_hook(x, options)
+  return(paste("\\begin{myVerb}\n", x, "\\end{myVerb}", collapse = "\n"))
+})
+```
+
+
+\newpage
+  
+  
+  
+# Appendix 1  
+# RAW DATA WORKSHEET
+
+```{r rawdata, message=FALSE, warning=FALSE}
+# Importing necessary libraries
+library(tseries)
+library(remotes)
+library(vars)
+library(ggplot2)
+library(tidyr)
+library(stargazer)
+library(psych)
+library(reshape2)
+library(dplyr)
+library(car)
+library(forecast)
+
+# Reading the csv file with the values of inflation expectation (one period ahead inflation)
+dataset<- read.csv("inf_ir_lead.csv", header = TRUE)
+
+# Converting Date column as  date
+dataset$Date <- as.Date(dataset[["Date"]], format = "%d/%m/%Y")
+
+# Printing the entire dataset
+knitr::kable(dataset, "latex", booktabs = TRUE, longtable = TRUE, digits = 2)%>%
+  kableExtra::kable_styling(font_size = 9)
+
+```
+
+\newpage
+
+# Appendix 2
+# DESCRIPTIVE STATISTICS RESULT
+
+```{r descriptive, results='asis', message=FALSE, warning=FALSE}
+
+# Selecting all columns except the date column
+selected_columns <- describe(dataset[, 2:ncol(dataset)])
+
+# Computing for the descriptive statistics of variables
+summary_stat <- selected_columns[c("mean",
+                                   "median",
+                                   "sd",
+                                   "min",
+                                   "max", "range")]
+
+# Printing Summary Statistics
+knitr::kable(summary_stat, "latex", booktabs = TRUE, longtable = TRUE, digits = 2)%>%
+  kableExtra::kable_styling(font_size = 10)
+
+```
+
+
+\newpage
+
+# Appendix 3
+# LENDING RATES LINE PLOT
+
+```{r ir_line, results='asis', out.width="60%", fig.align='center'}
+
+# Converting dataset into long format 
+dataset_long <- dataset[c("Date", c("high", "low"))] %>%
+  pivot_longer(cols = -Date, names_to = "Column", values_to = "Value")
+
+# Visualizing the data using line plot
+ggplot(dataset_long, aes(x = Date, y = Value, color = Column)) +
+  geom_line(linewidth = 0.75) +  
+  labs(title = "", x = "Year", y = "Percent per annum") +
+  theme_minimal() +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 14)) +
+  scale_x_date(date_labels = "%Y", date_breaks  ="4 year") +
+  scale_color_manual(values = c("high" = "#336A96", "low" = "#235347"))
+
+```
+
+\newpage
+
+# Appendix 4
+# INFLATION EXPECTATIONS LINE PLOTS
+
+```{r all_line3, results='asis', out.width = "60%", fig.align = 'center'}
+
+# Looping through each commodity inflation
+for (i in 2:14) {
+  
+  # Converting dataset into long format
+  dataset_long <- dataset[c("Date", names(dataset)[i])] %>%
+    pivot_longer(cols = -Date, names_to = "Column", values_to = "Value")
+  
+  # Get the column name
+  col_name <- names(dataset)[i]
+  
+  # Visualizing the data
+  p <- ggplot(dataset_long, aes(x = Date, y = Value, color = col_name)) +
+    geom_line(linewidth = 1) +
+    labs(title = col_name, x = "Year", y =  "Percent") +
+    theme_minimal() +
+    theme(legend.position = "none", 
+          plot.title = element_text(hjust = 0.5, size = 14)) +
+    scale_x_date(date_labels = "%Y", date_breaks = "4 year") +
+    scale_color_manual(values = "#336A96")
+  
+  print(p)
+}
+```
+
+\newpage
+
+# Appendix 5
+# UNIT ROOT TEST AT LEVEL RESULTS
+
+```{r adf, warning=FALSE}
+
+# Looping through each variable
+for (i in names(dataset)){
+  if (i != "Date"){
+    cat("\n-----Unit Root of ",i, "at Level------" )
+    
+    # Testing for stationarity at level
+    print(adf.test(dataset[[i]]))
+    
+    cat("-----------------------------------------------------------------------------")
+  } 
+}
+
+```
+
+\newpage
+
+# Appendix 6
+# UNIT ROOT TEST AT FIRST DIFFERENCE RESULTS
+
+```{r adf2, warning=FALSE}
+
+# Looping through each variable
+for (i in names(dataset)){
+  if (i != "Date" ){
+    cat("\n-----Unit Root of ",i, " at First Difference------")
+    
+    # Testing for stationarity at First Difference
+    print(adf.test(diff(dataset[[i]])))
+    cat("-----------------------------------------------------------------------------")
+  } 
+}
+
+```
+
+```{r diff, include=FALSE}
+
+# Placeholder dataframe to be replaced by first difference
+# Exclude first column because first difference
+dataset_diff <- dataset[2:314,]
+
+# Looping though each column
+for (i in names(dataset_diff)){
+  if (i != "Date"){
+    
+    # To take the first difference 
+    data = diff(dataset[[i]])
+    
+    # And replace data in the placeholder dataframe
+    dataset_diff[[i]] = data
+  } }
+
+```
+
+\newpage
+
+# Appendix 7
+# AKAIKE INFORMATION CRITERION RESULTS
+
+```{r akaike}
+
+# Looping through the first difference dataset
+for (i in names(dataset_diff)){
+  if (i != "Date" && i != "high"  && i != "low"  ){
+    
+    cat("\n-----High lending rate and ", i, "-----\n")
+    
+    # To get the optimal lag length of every combination of high lending rate and commodity inflation
+    print(VARselect(data.frame(dataset_diff[["high"]], dataset_diff[[i]])))
+    
+    cat("-----------------------------------------------------------------------------")
+    
+    cat("\n-----Low lending rate and ", i, "------\n")
+    
+    # To get the optimal lag length of every combination of low lending rate and commodity inflation
+    print(VARselect(data.frame(dataset_diff[["low"]], dataset_diff[[i]])))
+    
+    cat("-----------------------------------------------------------------------------")
+  } 
+}
+
+```
+
+\newpage
+
+# Appendix 8
+# GRANGER CAUSALITY TEST RESULTS
+
+```{r granger1}
+# Is lending interest rates granger cause commodity inflation expectation?
+# The lag order is based on AIC
+grangertest( dataset_diff[['all']] ~ dataset_diff[['high']], order=3)
+grangertest( dataset_diff[['all']] ~ dataset_diff[['low']], order=3)
+grangertest( dataset_diff[['food']] ~ dataset_diff[['high']], order=1)
+grangertest( dataset_diff[['food']]~ dataset_diff[['low']], order=4)
+grangertest( dataset_diff[['alco']] ~ dataset_diff[['high']], order=3)
+grangertest( dataset_diff[['alco']]~ dataset_diff[['low']], order=3)
+grangertest( dataset_diff[['cloth']] ~ dataset_diff[['high']], order=9)
+grangertest( dataset_diff[['cloth']]~ dataset_diff[['low']], order=4)
+grangertest( dataset_diff[['house']] ~ dataset_diff[['high']], order=1)
+grangertest( dataset_diff[['house']]~ dataset_diff[['low']], order=2)
+grangertest( dataset_diff[['furnish']] ~ dataset_diff[['high']], order=5)
+grangertest( dataset_diff[['furnish']]~ dataset_diff[['low']], order=4)
+grangertest( dataset_diff[['health']] ~ dataset_diff[['high']], order=7)
+grangertest( dataset_diff[['health']]~ dataset_diff[['low']], order=10)
+grangertest( dataset_diff[['transpo']] ~ dataset_diff[['high']], order=2)
+grangertest( dataset_diff[['transpo']] ~ dataset_diff[['low']], order=5)
+grangertest( dataset_diff[['ict']] ~ dataset_diff[['high']], order=2)
+grangertest( dataset_diff[['ict']]~ dataset_diff[['low']], order=10)
+grangertest( dataset_diff[['rec']] ~ dataset_diff[['high']], order=7)
+grangertest( dataset_diff[['rec']] ~ dataset_diff[['low']], order=7)
+grangertest( dataset_diff[['educ']] ~ dataset_diff[['high']], order=7)
+grangertest( dataset_diff[['educ']] ~ dataset_diff[['low']],order=7)
+grangertest( dataset_diff[['restau']] ~ dataset_diff[['high']], order=4)
+grangertest( dataset_diff[['restau']] ~ dataset_diff[['low']], order=4)
+grangertest( dataset_diff[['personal']] ~ dataset_diff[['high']], order=10)
+grangertest( dataset_diff[['personal']] ~ dataset_diff[['low']], order=10)
+
+```
+
+
+\newpage
+
+# Appendix 9
+# R PROGRAMMING LANGUAGE ALGORITHM FOR FORECASTING INFLATION EXPECTATIONS WITH HIGH LENDING RATE
+
+```{r high_AR, fig.align="center", warning=TRUE, results="asis", out.width="75%"}
+
+# Loop over each significant variables in Granger Causality Test
+high_variables <- c("all", "cloth", "health", "transpo", "ict", "rec", "personal")
+fullname <- c("ALL ITEMS", "CLOTHING AND FOOTWEAR", "HEALTH", "TRANSPORT", "INFORMATION AND COMMUNICATION", "RECREATION, SPORT AND CULTURE", "PERSONAL CARE, AND MISCELLANEOUS GOODS AND SERVICES")
+
+
+# Appendix count for the title
+Appendix = 10
+
+for (inf_exp in high_variables) {
+  
+  # Create a monthly time series object for the variables
+  ts_inf_exp <- ts(dataset[1:290,inf_exp],
+                   start = c(1997, 9), 
+                   end = c(2021, 10),
+                   frequency = 12)
+  ts_high <- ts(dataset[1:290,"high"],
+                start = c(1997, 9),
+                end = c(2021, 10),
+                frequency = 12)
+  
+  # Create a monthly time series object for data visualization 
+  actual_inf_exp <- ts(dataset[289:314,inf_exp],
+                       start = c(2021, 11),
+                       end = c(2023, 10),
+                       frequency = 12)
+  actual_inf_exp_long <- ts(dataset[1:290,inf_exp],
+                            start = c(1997, 10),
+                            end = c(2021, 10),
+                            frequency = 12)
+  
+  # Create a monthly time series object for testing forecasting
+  actual_high <- ts(dataset[291:314,"high"],
+                    start = c(2021, 11),
+                    end = c(2023, 10),
+                    frequency = 12)
+  
+  cat("\\newpage")
+  
+  cat("# Appendix",Appendix, "\n")
+  cat("# FORECASTING ", fullname[Appendix - 9], "INFLATION EXPECTATION WITH HIGH LENDING RATE\n")
+  Appendix = Appendix + 1
+  
+  cat(" HIGH -> ", toupper(inf_exp)," Inflation Expectation\n") 
+  
+  # Linear Regression with Autoregressive term fit
+  ar_model <- arima(ts_inf_exp,
+                    order = c(1, 0, 0),
+                    xreg = ts_high)
+  
+  # Extract residuals from the fitted AR model
+  ar_residuals <- ts(residuals(ar_model),
+                     start = c(1997, 9),
+                     end = c(2021, 10), 
+                     frequency = 12)
+
+  cat("\n-------- RESIDUALS TIME PLOT ----------" ) 
+  
+  # Setting up the plot
+  plot(ar_residuals,
+       ylab = "Residuals",
+       xlab = "Year-Month",
+       xaxt = "n",
+       main = paste("HIGH -> ", toupper(inf_exp)," Inflation Expectation"))
+  
+  dates <- as.Date(time(ar_residuals))
+  axis_dates <- time(ar_residuals)[seq(1, length(ar_residuals), by = 4)]
+  axis_labels <- format(dates[seq(1, length(ar_residuals), by = 4)], "%Y-%m")
+
+  axis(1, at = axis_dates,labels = axis_labels,las = 2, cex.axis = 0.6)
+
+  cat("\n\n-------- HETEROCEDASTICITY TEST ----------\n\n" )
+  print(bptest(lm(dataset[2:290,inf_exp] ~ dataset[2:290,"high"] + dataset[1:289,inf_exp])))
+  cat("\n")
+  
+  cat("\n------------- NORMALITY TEST ----------------\n " ) 
+  # Normality
+  print(jarque.bera.test(ar_residuals))
+  cat("\n")
+  
+  cat("\n -------- AUTOCORRELATION TEST ----------\n " ) 
+  # Serial Autocorrelation
+  print(Box.test(ar_residuals, lag = 10, type = "Ljung-Box"))
+  cat("\n")
+  cat("\n -------- FORECASTING SUMMARY  ---------- \n " ) 
+  print(summary(ar_model))
+  cat("\n")
+  
+  # Forecast the inflation expectation from Nov 2021 to Oct 2025
+  inf_forecast <- predict(ar_model, newxreg=actual_high, n.ahead=24)
+  inf_forecast_values <- inf_forecast$pred
+  inf_forecast_se <- inf_forecast$se
+  
+  # Extracting dates
+  dates <- as.Date(time(inf_forecast_values))
+  
+  # Plotting
+  plot(inf_forecast_values, 
+       main = paste("2-year Forecast for",toupper(inf_exp),"Inflation Expectation"), 
+       xlab = "Year-Month",
+       ylab = "Inflation Expectation",
+       xaxt = "n",col = "red",
+       lty = 1) 
+  
+      # Customize x-axis labels with year-month format
+      axis(1,
+           at = time(inf_forecast_values)[seq(1, length(inf_forecast_values), by = 4)],
+           labels = format(dates[seq(1, length(inf_forecast_values), by = 4)], "%Y-%m"))
+
+  # Add thin gray lines matching the y-axis labels
+  y_ticks <- axTicks(2)
+  for (y in y_ticks) {
+    abline(h = y, col = "gray", lty = 2, lwd = 0.2)}
+
+  # Add value labels every 3 data points
+  every_third <- seq(1, length(inf_forecast_values), by = 3)
+  text(x = time(inf_forecast_values)[every_third],
+       y = inf_forecast_values[every_third],
+       labels = round(inf_forecast_values[every_third], 2),
+       pos = 3, col = "black", cex = 0.8)
+  
+  # Variables will be used to zoom out the graph
+  overall_max <- max(max(coredata(inf_forecast_values)), 
+                     max(actual_inf_exp_long), max(inf_forecast_values - 1.96 * inf_forecast_se), 
+                     max(inf_forecast_values + 1.96 * inf_forecast_se))
+  overall_min <- min(min(coredata(inf_forecast_values)), min(actual_inf_exp_long), 
+                     min(inf_forecast_values - 1.96 * inf_forecast_se), 
+                     min(inf_forecast_values + 1.96 * inf_forecast_se))
+  
+  # Plotting the actual values of inflation expectation 
+  plot.ts(actual_inf_exp_long,
+          main = paste("Forecast for", toupper(inf_exp), "Inflation Expectation"),
+          xlab = "Year",
+          ylab = "Inflation Expectation",
+          lty = 1,
+          ylim = c(overall_min - 0.5, overall_max + 0.5))
+  lines(actual_inf_exp, col = "black", lty = 3)
+  
+  # Add the forecast on the end and confidence intervals 
+  lines(inf_forecast_values, col = "red", lwd = 2) 
+  lines(inf_forecast_values - 1.96 * inf_forecast_se, col = 4, lty = 1, lwd = 2)
+  lines(inf_forecast_values + 1.96 * inf_forecast_se, col = 4, lty = 1, lwd = 2)
+  
+  # Add thin gray lines matching the y-axis labels
+  y_ticks <- axTicks(2)
+  for (y in y_ticks) {
+    abline(h = y, col = "gray", lty = 2, lwd = 0.2)
+  }
+
+  # Add legend
+  legend("top",
+         legend = c("Actual Values", "Forecast", "Confidence Interval"),
+         col = c("black", "red", "blue"),
+         lty = c(1, 1, 1),
+         lwd = c(2, 2, 1),
+         cex = 0.6, horiz = TRUE, 
+         bg = "transparent") 
+  }
+```
+
+\newpage
+
+# Appendix 17
+# R PROGRAMMING LANGUAGE ALGORITHM FOR FORECASTING INFLATION EXPECTATIONS WITH LOW LENDING RATE
+
+```{r low_AR, fig.align="center", warning=TRUE, results="asis", out.width="75%"}
+
+# Loop over each significant variables in Granger Causality Test
+low_variables <- c("all", "cloth", "health", "transpo", "ict", "rec", "personal", "food", "educ")
+
+fullname <- c("ALL ITEMS", 
+              "CLOTHING AND FOOTWEAR",
+              "HEALTH", "TRANSPORT",
+              "INFORMATION AND COMMUNICATION",
+              "RECREATION, SPORT AND CULTURE",
+              "PERSONAL CARE, AND MISCELLANEOUS GOODS AND SERVICES",
+              "FOOD AND NON-ALCOHOLIC BEVERAGES",
+              "EDUCATION SERVICES")
+
+# Appendix count for the title
+Appendix = 18
+
+for (inf_exp in low_variables) {
+  
+  # Create a monthly time series object for the variables
+  ts_inf_exp <- ts(dataset[1:290,inf_exp],
+                   start = c(1997, 9), 
+                   end = c(2021, 10),
+                   frequency = 12)
+  ts_low <- ts(dataset[1:290,"low"],
+                start = c(1997, 9),
+                end = c(2021, 10),
+                frequency = 12)
+  
+  # Create a monthly time series object for data visualization 
+  actual_inf_exp <- ts(dataset[289:314,inf_exp],
+                       start = c(2021, 11),
+                       end = c(2023, 10),
+                       frequency = 12)
+  actual_inf_exp_long <- ts(dataset[1:290,inf_exp],
+                            start = c(1997, 10),
+                            end = c(2021, 10),
+                            frequency = 12)
+  
+  # Create a monthly time series object for testing forecasting
+  actual_low <- ts(dataset[291:314,"low"],
+                    start = c(2021, 11),
+                    end = c(2023, 10),
+                    frequency = 12)
+  
+  cat("\\newpage")
+  cat("# Appendix",Appendix,"\n")
+  cat("# FORECASTING ", fullname[Appendix - 17], "INFLATION EXPECTATION WITH LOW LENDING RATE\n")
+  Appendix = Appendix + 1
+  cat(" low -> ", toupper(inf_exp)," Inflation Expectation\n") 
+  
+  # Linear Regression with Autoregressive term fit
+  ar_model <- arima(ts_inf_exp,
+                    order = c(1, 0, 0),
+                    xreg = ts_low)
+  
+  # Extract residuals from the fitted ARIMA model
+  ar_residuals <- ts(residuals(ar_model),
+                     start = c(1997, 9),
+                     end = c(2021, 10), 
+                     frequency = 12)
+  
+  cat("\n-------- RESIDUALS TIME PLOT ----------" ) 
+  
+  # Setting up the plot
+  plot(ar_residuals,
+       ylab = "Residuals",
+       xlab = "Year-Month",
+       xaxt = "n",
+       main = paste("LOW -> ", toupper(inf_exp)," Inflation Expectation"))
+  
+  dates <- as.Date(time(ar_residuals))
+  axis_dates <- time(ar_residuals)[seq(1, length(ar_residuals), by = 4)]
+  axis_labels <- format(dates[seq(1, length(ar_residuals), by = 4)], "%Y-%m")
+  
+  axis(1, at = axis_dates,labels = axis_labels,las = 2, cex.axis = 0.6)
+  
+  cat("\n\n-------- HETEROCEDASTICITY TEST ----------\n\n" )
+  print(bptest(lm(dataset[2:290,inf_exp] ~ dataset[2:290,"low"] + dataset[1:289,inf_exp])))
+  cat("\n")
+  
+  cat("\n------------- NORMALITY TEST ----------------\n " ) 
+  # Normality
+  print(jarque.bera.test(ar_residuals))
+  cat("\n")
+  
+  cat("\n -------- AUTOCORRELATION TEST ----------\n " ) 
+  # Serial Autocorrelation
+  print(Box.test(ar_residuals, lag = 10, type = "Ljung-Box"))
+  cat("\n")
+  cat("\n -------- FORECASTING SUMMARY  ---------- \n " ) 
+  print(summary(ar_model))
+  cat("\n")
+  
+  # Forecast the inflation expectation from Nov 2021 to Oct 2025
+  inf_forecast <- predict(ar_model, newxreg=actual_low, n.ahead=24)
+  inf_forecast_values <- inf_forecast$pred
+  inf_forecast_se <- inf_forecast$se
+  
+  # Extracting dates
+  dates <- as.Date(time(inf_forecast_values))
+  
+  # Plotting
+  plot(inf_forecast_values, 
+       main = paste("2-year Forecast for",toupper(inf_exp),"Inflation Expectation"), 
+       xlab = "Year-Month",
+       ylab = "Inflation Expectation",
+       xaxt = "n",col = "red",
+       lty = 1) 
+  
+  # Customize x-axis labels with year-month format
+  axis(1,
+       at = time(inf_forecast_values)[seq(1, length(inf_forecast_values), by = 4)],
+       labels = format(dates[seq(1, length(inf_forecast_values), by = 4)], "%Y-%m"))
+  
+  # Add thin gray lines matching the y-axis labels
+  y_ticks <- axTicks(2)
+  for (y in y_ticks) {
+    abline(h = y, col = "gray", lty = 2, lwd = 0.2)}
+  
+  # Add value labels every 3 data points
+  every_third <- seq(1, length(inf_forecast_values), by = 3)
+  text(x = time(inf_forecast_values)[every_third],
+       y = inf_forecast_values[every_third],
+       labels = round(inf_forecast_values[every_third], 2),
+       pos = 3, col = "black", cex = 0.8)
+  
+  # Variables will be used to zoom out the graph
+  overall_max <- max(max(coredata(inf_forecast_values)), 
+                     max(actual_inf_exp_long), max(inf_forecast_values - 1.96 * inf_forecast_se), 
+                     max(inf_forecast_values + 1.96 * inf_forecast_se))
+  overall_min <- min(min(coredata(inf_forecast_values)), min(actual_inf_exp_long), 
+                     min(inf_forecast_values - 1.96 * inf_forecast_se), 
+                     min(inf_forecast_values + 1.96 * inf_forecast_se))
+  
+  # Plotting the actual values of inflation expectation 
+  plot.ts(actual_inf_exp_long,
+          main = paste("Forecast for", toupper(inf_exp), "Inflation Expectation"),
+          xlab = "Year",
+          ylab = "Inflation Expectation",
+          lty = 1,
+          ylim = c(overall_min - 0.5, overall_max + 0.5))
+  lines(actual_inf_exp, col = "black", lty = 3)
+  
+  # Add the forecast on the end and confidence intervals 
+  lines(inf_forecast_values, col = "red", lwd = 2) 
+  lines(inf_forecast_values - 1.96 * inf_forecast_se, col = 4, lty = 1, lwd = 2)
+  lines(inf_forecast_values + 1.96 * inf_forecast_se, col = 4, lty = 1, lwd = 2)
+  
+  # Add thin gray lines matching the y-axis labels
+  y_ticks <- axTicks(2)
+  for (y in y_ticks) {
+    abline(h = y, col = "gray", lty = 2, lwd = 0.2)
+  }
+  
+  # Add legend
+  legend("top",
+         legend = c("Actual Values", "Forecast", "Confidence Interval"),
+         col = c("black", "red", "blue"),
+         lty = c(1, 1, 1),
+         lwd = c(2, 2, 1),
+         cex = 0.6, horiz = TRUE, 
+         bg = "transparent") 
+}
+```
+
+
