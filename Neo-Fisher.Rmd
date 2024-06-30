@@ -20,7 +20,6 @@ header-includes:
 ```{r setup, include=FALSE}
 library(knitr)
 
-
 knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 80), tidy = TRUE)
 opts_chunk$set(comment=NA)
 def_hook <- knit_hooks$get("output")
@@ -30,10 +29,7 @@ knit_hooks$set(output = function(x, options) {
 })
 ```
 
-
 \newpage
-  
-  
   
 # Appendix 1  
 # RAW DATA WORKSHEET
@@ -61,7 +57,6 @@ dataset$Date <- as.Date(dataset[["Date"]], format = "%d/%m/%Y")
 # Printing the entire dataset
 knitr::kable(dataset, "latex", booktabs = TRUE, longtable = TRUE, digits = 2)%>%
   kableExtra::kable_styling(font_size = 9)
-
 ```
 
 \newpage
@@ -84,9 +79,7 @@ summary_stat <- selected_columns[c("mean",
 # Printing Summary Statistics
 knitr::kable(summary_stat, "latex", booktabs = TRUE, longtable = TRUE, digits = 2)%>%
   kableExtra::kable_styling(font_size = 10)
-
 ```
-
 
 \newpage
 
@@ -109,7 +102,6 @@ ggplot(dataset_long, aes(x = Date, y = Value, color = Column)) +
         legend.text = element_text(size = 14)) +
   scale_x_date(date_labels = "%Y", date_breaks  ="4 year") +
   scale_color_manual(values = c("high" = "#336A96", "low" = "#235347"))
-
 ```
 
 \newpage
