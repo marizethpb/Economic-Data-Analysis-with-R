@@ -2,7 +2,10 @@
 This is our thesis work (Briña, Galapate, Manlapig, & Rosero, 2024).
 
 ## What is Neo-Fisher Effect?
-Neo-Fisher is an economic theory that states that interest rate causes the inflation expectation. This means that economic agents consider interest rate in price level expectations.
+Neo-Fisher is an economic theory that states that interest rate causes the inflation expectation. This means that economic agents consider interest rate in their price level expectations.
+
+## Problem
+Neo-Fisher Effect theory is too general. We aim to specify what type of interest rate is granger causing what commodity inflation expectation. Drilling down lending rates and various commodity inflation expectation with respect to Neo-Fisher Effect will aid in the improvement of monetary policies.
 
 ## Summary
 The study investigates the causal relationship from lending rates to commodity
